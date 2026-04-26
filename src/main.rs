@@ -51,7 +51,6 @@ fn main() {
                 }
             },
             AppState::Dashboard => {
-                // Обработка стрелок
                 if buf[0] == 27 {
                     if stdin.read_exact(&mut buf).is_ok() && buf[0] == 91 {
                         if stdin.read_exact(&mut buf).is_ok() {
@@ -75,7 +74,6 @@ fn main() {
                             tasks[cursor].done = !tasks[cursor].done; 
                         } 
                     },
-                    // Пробел теперь ничего не делает (или можно сделать скролл), но галочку не ставит
                     b' ' => {}, 
                     
                     b'a' | b'A' => {
@@ -176,7 +174,6 @@ fn draw_menu() {
     ];
 
     println!("\n\n");
-    // Рисуем каждую строку с оранжевым градиентом
     for line in crab_lines {
         println!("   {}", rgb_text(line, 255, 100, 50));
     }
@@ -225,7 +222,7 @@ fn draw_dashboard(tasks: &[Task], cursor: usize) {
     println!("   {}", rgb_text("УПРАВЛЕНИЕ:", 255, 255, 255));
     println!("   {} W / S          - Выбор задачи", rgb_text("•", 200, 200, 200));
     println!("   {} ENTER          - Поставить/убрать галочку", rgb_text("•", 200, 200, 200));
-    println!("   {} A              - Добавить (Назв [ссылка] [notwork])", rgb_text("•", 100, 255, 100));
+    println!("   {} A              - Добавить (Назв [ссылка])", rgb_text("•", 100, 255, 100));
     println!("   {} D              - Удалить задачу", rgb_text("•", 255, 100, 100));
     println!("   {} G              - Открыть ссылку", rgb_text("•", 100, 200, 255));
     println!("   {} M / Esc        - Главное меню", rgb_text("•", 255, 200, 100));
