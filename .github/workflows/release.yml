@@ -1,12 +1,16 @@
-name: Build Releases
+name: Build and Release
 
 on:
   push:
     tags:
-      - 'v*' # Запускается, когда ты создаешь тег версии (например, v1.0.0)
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
@@ -20,10 +24,8 @@ jobs:
             target: x86_64-unknown-linux-gnu
             ext: ""
 
-    runs-on: ${{ matrix.os }}
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-action@stable
@@ -33,14 +35,14 @@ jobs:
       - name: Build Release
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Rename Binary
+      - name: Prepare Binary
         run: |
-          cp target/${{ matrix.target }}/release/rust-task-manager${{ matrix.ext }} rust-task-manager-${{ matrix.target }}${{ matrix.ext }}
+          mkdir release-files
+          cp target/${{ matrix.target }}/release/rust-task-manager${{ matrix.ext }} release-files/rust-task-manager-${{ matrix.target }}${{ matrix.ext }}
 
-      - name: Create Release
+      - name: Upload to Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: rust-task-manager-*
+          files: release-files/*
         env:
-          GITHUB_TOKEN: ${{ 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 }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
