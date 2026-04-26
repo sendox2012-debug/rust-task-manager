@@ -45,19 +45,19 @@ fn main() {
         match state {
             AppState::Menu => {
                 match buf[0] {
-                    b'1' | b' ' | 10 | 13 => state = AppState::Dashboard,
+                    b'1' | 10 | 13 => state = AppState::Dashboard, // Вход по '1' или Enter
                     b'q' | b'Q' | 27 => break,
                     _ => {}
                 }
             },
             AppState::Dashboard => {
-                // Стрелки
+                // Обработка стрелок
                 if buf[0] == 27 {
                     if stdin.read_exact(&mut buf).is_ok() && buf[0] == 91 {
                         if stdin.read_exact(&mut buf).is_ok() {
                             match buf[0] {
-                                65 => { if cursor > 0 { cursor -= 1; } }
-                                66 => { if !tasks.is_empty() && cursor < tasks.len() - 1 { cursor += 1; } }
+                                65 => { if cursor > 0 { cursor -= 1; } } // Up
+                                66 => { if !tasks.is_empty() && cursor < tasks.len() - 1 { cursor += 1; } } // Down
                                 _ => {}
                             }
                         }
@@ -69,42 +69,55 @@ fn main() {
                     b'w' | b'W' => { if cursor > 0 { cursor -= 1; } },
                     b's' | b'S' => { if !tasks.is_empty() && cursor < tasks.len() - 1 { cursor += 1; } },
                     
-                    b' ' | 10 | 13 => { 
-                        if !tasks.is_empty() { tasks[cursor].done = !tasks[cursor].done; } 
+                    // ГАЛОЧКА ТОЛЬКО ПО ENTER (10 или 13)
+                    10 | 13 => { 
+                        if !tasks.is_empty() { 
+                            tasks[cursor].done = !tasks[cursor].done; 
+                        } 
                     },
+                    // Пробел теперь ничего не делает (или можно сделать скролл), но галочку не ставит
+                    b' ' => {}, 
                     
                     b'a' | b'A' => {
-                        // 1. Показываем курсор и выключаем raw-режим для ввода
                         let _ = stdout.write_all(SHOW_CURSOR.as_bytes());
                         let _ = stdout.flush();
                         if is_raw { disable_raw_mode().ok(); }
 
-                        println!(); // Отступ
-                        
-                        // 2. Ввод НАЗВАНИЯ
-                        print!("   >>> Название задачи: ");
+                        println!();
+                        print!("   >>> Название [ссылка] [notwork]: ");
                         io::stdout().flush().unwrap();
-                        let mut name_input = String::new();
-                        io::stdin().read_line(&mut name_input).unwrap_or_default();
-                        let name = name_input.trim().to_string();
+                        
+                        let mut input = String::new();
+                        io::stdin().read_line(&mut input).unwrap_or_default();
+                        let input = input.trim();
 
-                        if !name.is_empty() {
-                            // 3. Ввод ССЫЛКИ (только если название не пустое)
-                            print!("   >>> Ссылка (Enter если нет): ");
-                            io::stdout().flush().unwrap();
-                            let mut url_input = String::new();
-                            io::stdin().read_line(&mut url_input).unwrap_or_default();
-                            let url_val = url_input.trim().to_string();
+                        if !input.is_empty() {
+                            let parts: Vec<&str> = input.split_whitespace().collect();
+                            
+                            if !parts.is_empty() {
+                                let mut name_parts = Vec::new();
+                                let mut url: Option<String> = None;
+                                let mut done = false;
 
-                            tasks.push(Task { 
-                                name, 
-                                url: if url_val.is_empty() { None } else { Some(url_val) }, 
-                                done: false 
-                            });
-                            if cursor >= tasks.len() { cursor = tasks.len() - 1; }
+                                for part in parts {
+                                    if part == "notwork" {
+                                        done = true;
+                                    } else if part.starts_with("http") || (part.contains('.') && part.len() > 3 && !part.contains(' ')) {
+                                        url = Some(part.to_string());
+                                    } else {
+                                        name_parts.push(part);
+                                    }
+                                }
+
+                                let name = name_parts.join(" ");
+
+                                if !name.is_empty() {
+                                    tasks.push(Task { name, url, done });
+                                    if cursor >= tasks.len() { cursor = tasks.len() - 1; }
+                                }
+                            }
                         }
 
-                        // 4. Возвращаем настройки терминала
                         if is_raw {
                             enable_raw_mode().ok();
                             let _ = stdout.write_all(HIDE_CURSOR.as_bytes());
@@ -139,33 +152,56 @@ fn main() {
     let _ = stdout.write_all(SHOW_CURSOR.as_bytes());
     let _ = stdout.flush();
     if is_raw { disable_raw_mode().ok(); }
-    println!("\nПока!\n");
+    println!("\nПока! 🦀\n");
 }
 
 fn clear_screen() { print!("\x1B[2J\x1B[H"); }
 
 fn draw_menu() {
-    let title = rgb_text(" RUST TASK MANAGER ", 0, 255, 255);
+    // ASCII Арт крабика Ferris (символами)
+    let crab_lines = vec![
+        "      🦀 RUST TODO 🦀       ",
+        "   ______________________   ",
+        "  /                      \\  ",
+        " |  __                  __ | ",
+        " | [__]                [__]| ",
+        " |  /  \\              /  \\ | ",
+        " | | O  |  ________  | O  || ",
+        " |  \\__/  |        |  \\__/ | ",
+        " |        |  RUST  |        | ",
+        " |        |________|        | ",
+        "  \\________________________/  ",
+        "     |                |       ",
+        "    /                  \\      ",
+    ];
+
     println!("\n\n");
-    println!("   {}", title);
-    println!("\n\n");
-    println!("   {}", rgb_text("1. Начать работу", 100, 255, 100));
-    println!("   {}", rgb_text("Q. Выход", 255, 100, 100));
-    println!("\n\n   Нажмите '1' для старта...");
+    // Рисуем каждую строку с оранжевым градиентом
+    for line in crab_lines {
+        println!("   {}", rgb_text(line, 255, 100, 50));
+    }
+    
+    println!("\n");
+    println!("   {}", rgb_text("ДОБРО ПОЖАЛОВАТЬ В RUST TODO", 0, 255, 255));
+    println!("\n");
+    println!("   {}", rgb_text("[1] Начать работу", 100, 255, 100));
+    println!("   {}", rgb_text("[Q] Выход", 255, 100, 100));
+    println!("\n   Нажмите '1' или 'Enter' для старта...");
 }
 
 fn draw_dashboard(tasks: &[Task], cursor: usize) {
     let width = 70;
-    let header = rgb_text(" DASHBOARD ", 0, 255, 255);
+    let header = rgb_text(" RUST TODO DASHBOARD ", 0, 255, 255);
     
     println!("╔{}╗", rgb_text(&"═".repeat(width), 100, 100, 100));
     print!("║");
-    let pad = (width - 11) / 2;
+    let pad = (width - 21) / 2;
     println!("{:pad$}{}{:pad$}║", "", header, "", pad = pad);
     println!("╚{}╝\n", rgb_text(&"═".repeat(width), 100, 100, 100));
 
     if tasks.is_empty() {
         println!("   {}", rgb_text("Список пуст. Нажми 'A', чтобы добавить задачу.", 150, 150, 150));
+        println!("   {}", rgb_text("Формат: Название [ссылка] [notwork]", 100, 100, 100));
     } else {
         for (i, t) in tasks.iter().enumerate() {
             let sel = i == cursor;
@@ -188,8 +224,8 @@ fn draw_dashboard(tasks: &[Task], cursor: usize) {
     println!("\n{}", rgb_text(&"─".repeat(width), 50, 50, 50));
     println!("   {}", rgb_text("УПРАВЛЕНИЕ:", 255, 255, 255));
     println!("   {} W / S          - Выбор задачи", rgb_text("•", 200, 200, 200));
-    println!("   {} Пробел         - Отметить выполнено", rgb_text("•", 200, 200, 200));
-    println!("   {} A              - Добавить задачу", rgb_text("•", 100, 255, 100));
+    println!("   {} ENTER          - Поставить/убрать галочку", rgb_text("•", 200, 200, 200));
+    println!("   {} A              - Добавить (Назв [ссылка] [notwork])", rgb_text("•", 100, 255, 100));
     println!("   {} D              - Удалить задачу", rgb_text("•", 255, 100, 100));
     println!("   {} G              - Открыть ссылку", rgb_text("•", 100, 200, 255));
     println!("   {} M / Esc        - Главное меню", rgb_text("•", 255, 200, 100));
