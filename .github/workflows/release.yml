@@ -43,4 +43,4 @@ jobs:
         with:
           files: rust-task-manager-*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ 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 }}
