@@ -1,0 +1,13 @@
+[package]
+name = "rust-task-manager"
+version = "1.0.0"
+edition = "2021"
+authors = ["sendox2012"] # Твой ник
+description = "Красивый RGB менеджер задач для терминала с поддержкой ссылок"
+license = "MIT"
+repository = "https://github.com/sendox2012-debug/rust-task-manager" # Ссылка будет позже
+
+[profile.release]
+opt-level = "z"  # Максимальное сжатие размера
+lto = true       # Link Time Optimization для скорости и размера
+strip = true     # Удалить отладочную информацию
